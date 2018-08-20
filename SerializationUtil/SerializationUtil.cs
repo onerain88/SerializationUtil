@@ -390,8 +390,8 @@ namespace SerializationUtil
             object[] array = new object[length];
             for (int i = 0; i < length; i++)
             {
-                SUType eType = (SUType)stream.ReadByte();
-                //array[i] = Deserialize()
+                object v = Deserialize(stream);
+                array.SetValue(v, i);
             }
             return array;
         }

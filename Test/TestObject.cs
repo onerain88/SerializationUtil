@@ -8,18 +8,6 @@ namespace SerializationUtil
     [TestFixture()]
     public class TestObject
     {
-        [Test()]
-        public void TestString()
-        {
-            string str = "hello, world";
-            MemoryStream stream = new MemoryStream();
-            SerializationUtil.Serialize(stream, str, true);
-            stream.Position = 0;
-            string nStr = SerializationUtil.Deserialize(stream) as string;
-            Console.WriteLine(nStr);
-            Assert.AreEqual(nStr, str);
-        }
-
         [Test]
         public void TestCustomType()
         {
