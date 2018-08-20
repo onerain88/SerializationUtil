@@ -36,6 +36,7 @@
     <Compile Include="Hero.cs" />
     <Compile Include="TestArray.cs" />
     <Compile Include="TestObject.cs" />
+    <Compile Include="TestDictionary.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SerializationUtil\SerializationUtil.csproj">

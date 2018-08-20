@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace SerializationUtil
@@ -64,6 +65,8 @@ namespace SerializationUtil
             typeCodeDict.Add(typeCode, customType);
         }
 
+#region Serialization
+
         public static void Serialize(MemoryStream stream, object obj, bool setType = false)
         {
             Type type = obj.GetType();
@@ -100,7 +103,9 @@ namespace SerializationUtil
             else if (type.IsGenericType)
             {
                 // 泛型类型
-
+                if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
+                    SerializeDictionary(stream, obj as IDictionary);
+                }
             }
             else
             {
@@ -251,12 +256,35 @@ namespace SerializationUtil
             stream.WriteByte((byte)SUType.ObjectArray);
             SerializeInt(stream, array.Length);
             // TODO 序列化 Object
+
             for (int i = 0; i < array.Length; i++)
             {
                 object v = array.GetValue(i);
                 Serialize(stream, v, true);
             }
         }
+
+        public static void SerializeDictionary(MemoryStream stream, IDictionary dict) {
+            Type type = dict.GetType();
+            Type kType = type.GetGenericArguments()[0];
+            Type vType = type.GetGenericArguments()[1];
+            // TODO 判断 object 类型
+
+            SerializeByte(stream, (byte)SUType.Dictionary);
+            SerializeByte(stream, (byte)GetCodeByType(kType));
+            SerializeByte(stream, (byte)GetCodeByType(vType));
+            SerializeInt(stream, dict.Count);
+            IDictionaryEnumerator enumerator = dict.GetEnumerator();
+            while (enumerator.MoveNext()) {
+                DictionaryEntry entry = (DictionaryEntry)enumerator.Current;
+                Serialize(stream, entry.Key);
+                Serialize(stream, entry.Value);
+            }
+        }
+
+#endregion
+
+#region Deserialization
 
         public static object Deserialize(MemoryStream stream) {
             SUType type = (SUType)stream.ReadByte();
@@ -304,6 +332,9 @@ namespace SerializationUtil
                     return customType.DeserializationFunc.Invoke(stream);
                 }
                 return null;
+            }
+            else if (type == SUType.Dictionary) {
+                return DeserializeDictionary(stream);
             }
             return null;
         }
@@ -384,9 +415,7 @@ namespace SerializationUtil
         }
 
         public static Array DeserializeObjectArray(MemoryStream stream) {
-            byte[] lengthBytes = new byte[4];
-            stream.Read(lengthBytes, 0, 4);
-            int length = BitConverter.ToInt32(lengthBytes, 0);
+            int length = DeserializeLength(stream);
             object[] array = new object[length];
             for (int i = 0; i < length; i++)
             {
@@ -395,6 +424,31 @@ namespace SerializationUtil
             }
             return array;
         }
+
+        public static IDictionary DeserializeDictionary(MemoryStream stream) {
+            SUType kTypeCode = (SUType)DeserializeByte(stream);
+            Type kType = GetTypeByCode(kTypeCode);
+            SUType vTypeCode = (SUType)DeserializeByte(stream);
+            Type vType = GetTypeByCode(vTypeCode);
+            Type type = typeof(Dictionary<,>).MakeGenericType(kType, vType);
+            IDictionary dictionary = Activator.CreateInstance(type) as IDictionary;
+            int length = DeserializeLength(stream);
+            for (int i = 0; i < length; i++) {
+                object k = Deserialize(stream, kTypeCode);
+                object v = Deserialize(stream, vTypeCode);
+                dictionary.Add(k, v);
+            }
+            return dictionary;
+        }
+
+        public static int DeserializeLength(MemoryStream stream) {
+            byte[] lengthBytes = new byte[4];
+            stream.Read(lengthBytes, 0, 4);
+            int length = BitConverter.ToInt32(lengthBytes, 0);
+            return length;
+        }
+
+#endregion
 
         static SUType GetCodeByType(Type type) {
             if (type == typeof(byte))
@@ -411,6 +465,10 @@ namespace SerializationUtil
                 return SUType.Double;
             if (type == typeof(string))
                 return SUType.String;
+            if (type.IsArray)
+                return SUType.Array;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                return SUType.Dictionary;
             return SUType.Unknown;
         }
 
@@ -430,6 +488,7 @@ namespace SerializationUtil
                     return typeof(double);
                 case SUType.String:
                     return typeof(string);
+
                 default:
                     throw new Exception(string.Format("not support: {0}", code));
             }
