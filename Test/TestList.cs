@@ -77,5 +77,35 @@ namespace SerializationUtil
             Assert.AreEqual(noList[1], "hello, world");
             Assert.AreEqual(noList[2], true);
         }
+
+        [Test]
+        public void TestDictList()
+        {
+            var list = new List<Dictionary<string, int>>();
+            for (int i = 0; i < 3; i++)
+            {
+                Dictionary<string, int> dict = new Dictionary<string, int>();
+                for (int j = 0; j < 4; j++)
+                {
+                    string k = string.Format("key{0}", j);
+                    int v = j;
+                    dict.Add(k, v);
+                }
+                list.Add(dict);
+            }
+            MemoryStream stream = new MemoryStream();
+            SerializationUtil.Serialize(stream, list);
+            stream.Position = 0;
+            var nList = SerializationUtil.Deserialize(stream) as List<Dictionary<string, int>>;
+            for (int i = 0; i < 3; i++)
+            {
+                var dict = list[i];
+                var nDict = nList[i];
+                foreach (var entry in dict)
+                {
+                    Assert.AreEqual(entry.Value, nDict[entry.Key]);
+                }
+            }
+        }
     }
 }

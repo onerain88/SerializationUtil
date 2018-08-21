@@ -106,7 +106,7 @@ namespace SerializationUtil
                 if (type.GetGenericTypeDefinition() == typeof(List<>)) {
                     SerializeList(stream, obj as IList);
                 } else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
-                    SerializeDictionary(stream, obj as IDictionary);
+                    SerializeDictionary(stream, obj as IDictionary, true);
                 }
             }
             else
@@ -278,7 +278,11 @@ namespace SerializationUtil
                 SUType eTypeCode = GetCodeByType(eType);
                 if (eTypeCode != SUType.Unknown)
                 {
-                    SerializePrimaryList(stream, list, eTypeCode);
+                    if (eTypeCode == SUType.Dictionary) {
+                        SerializeDictionaryList(stream, list);
+                    } else {
+                        SerializePrimaryList(stream, list, eTypeCode);
+                    }
                 }
                 else {
                     if (typeDict.TryGetValue(eType, out CustomType customType)) {
@@ -324,13 +328,32 @@ namespace SerializationUtil
             }
         }
 
-        public static void SerializeDictionary(MemoryStream stream, IDictionary dict) {
+        public static void SerializeDictionaryList(MemoryStream stream, IList list) {
+            SerializeByte(stream, (byte)SUType.Dictionary);
+            Type type = list.GetType();
+            Type dictType = type.GetGenericArguments()[0];
+            Type kType = dictType.GetGenericArguments()[0];
+            Type vType = dictType.GetGenericArguments()[1];
+            SUType kTypeCode = GetCodeByType(kType);
+            SUType vTypeCode = GetCodeByType(vType);
+            SerializeByte(stream, (byte)kTypeCode);
+            SerializeByte(stream, (byte)vTypeCode);
+            SerializeInt(stream, list.Count);
+            for (int i = 0; i < list.Count; i++) {
+                object v = list[i];
+                SerializeDictionary(stream, v as IDictionary);
+            }
+        }
+
+        public static void SerializeDictionary(MemoryStream stream, IDictionary dict, bool setType = false) {
+            if (setType) {
+                SerializeByte(stream, (byte)SUType.Dictionary);
+            }
             Type type = dict.GetType();
             Type kType = type.GetGenericArguments()[0];
             Type vType = type.GetGenericArguments()[1];
             // TODO 判断 object 类型
 
-            SerializeByte(stream, (byte)SUType.Dictionary);
             SerializeByte(stream, (byte)GetCodeByType(kType));
             SerializeByte(stream, (byte)GetCodeByType(vType));
             SerializeInt(stream, dict.Count);
@@ -511,15 +534,32 @@ namespace SerializationUtil
             }
             else
             {
-                Type eType = GetTypeByCode(eTypeCode);
-                Type type = typeof(List<>).MakeGenericType(eType);
-                IList list = Activator.CreateInstance(type) as IList;
-                int length = DeserializeLength(stream);
-                for (int i = 0; i < length; i++) {
-                    object v = Deserialize(stream, eTypeCode);
-                    list.Add(v);
+                if (eTypeCode == SUType.Dictionary) {
+                    SUType kTypeCode = (SUType)stream.ReadByte();
+                    SUType vTypeCode = (SUType)stream.ReadByte();
+                    Type kType = GetTypeByCode(kTypeCode);
+                    Type vType = GetTypeByCode(vTypeCode);
+                    int length = DeserializeLength(stream);
+                    Type dictType = typeof(Dictionary<,>).MakeGenericType(kType, vType);
+                    Type type = typeof(List<>).MakeGenericType(dictType);
+                    IList list = Activator.CreateInstance(type) as IList;
+                    for (int i = 0; i < length; i++) {
+                        object v = DeserializeDictionary(stream) as IDictionary;
+                        list.Add(v);
+                    }
+                    return list;
+                } else {
+                    Type eType = GetTypeByCode(eTypeCode);
+                    Type type = typeof(List<>).MakeGenericType(eType);
+                    IList list = Activator.CreateInstance(type) as IList;
+                    int length = DeserializeLength(stream);
+                    for (int i = 0; i < length; i++)
+                    {
+                        object v = Deserialize(stream, eTypeCode);
+                        list.Add(v);
+                    }
+                    return list;
                 }
-                return list;
             }
         }
 
