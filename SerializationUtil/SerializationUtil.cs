@@ -103,7 +103,9 @@ namespace SerializationUtil
             else if (type.IsGenericType)
             {
                 // 泛型类型
-                if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
+                if (type.GetGenericTypeDefinition() == typeof(List<>)) {
+                    SerializeList(stream, obj as IList);
+                } else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
                     SerializeDictionary(stream, obj as IDictionary);
                 }
             }
@@ -222,6 +224,8 @@ namespace SerializationUtil
                     if (typeDict.TryGetValue(eType, out CustomType customType))
                     {
                         SerializeCustomTypeArray(stream, array, customType);                        
+                    } else {
+                        throw new Exception(string.Format("not support type: {0}", eType));
                     }
                 }
             }
@@ -252,14 +256,70 @@ namespace SerializationUtil
         }
 
         public static void SerializeObjectArray(MemoryStream stream, Array array) {
-            // object 类型的数组
             stream.WriteByte((byte)SUType.ObjectArray);
             SerializeInt(stream, array.Length);
-            // TODO 序列化 Object
-
             for (int i = 0; i < array.Length; i++)
             {
                 object v = array.GetValue(i);
+                Serialize(stream, v, true);
+            }
+        }
+
+        public static void SerializeList(MemoryStream stream, IList list) {
+            Type type = list.GetType();
+            Type eType = type.GetGenericArguments()[0];
+            if (eType == typeof(object))
+            {
+                SerializeObjectList(stream, list as List<object>);
+            }
+            else
+            {
+                stream.WriteByte((byte)SUType.List);
+                SUType eTypeCode = GetCodeByType(eType);
+                if (eTypeCode != SUType.Unknown)
+                {
+                    SerializePrimaryList(stream, list, eTypeCode);
+                }
+                else {
+                    if (typeDict.TryGetValue(eType, out CustomType customType)) {
+                        SerializeCustomTypeList(stream, list, customType);
+                    } else {
+                        throw new Exception(string.Format("not support type: {0}", eType));
+                    }
+                }
+            }
+        }
+
+        public static void SerializePrimaryList(MemoryStream stream, IList list, SUType eTypeCode) {
+            // 标记数组元素类型
+            SerializeByte(stream, (byte)eTypeCode);
+            // 标记数组长度
+            SerializeInt(stream, list.Count);
+            // 序列化数组元素
+            for (int i = 0; i < list.Count; i++)
+            {
+                object v = list[i];
+                Serialize(stream, v);
+            }
+        }
+
+        public static void SerializeCustomTypeList(MemoryStream stream, IList list, CustomType customType) {
+            SerializeByte(stream, (byte)SUType.CustomClass);
+            SerializeByte(stream, customType.TypeCode);
+            SerializeInt(stream, list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                object v = list[i];
+                customType.SerializationFunc.Invoke(stream, v);
+            }
+        }
+
+        public static void SerializeObjectList(MemoryStream stream, List<object> list) {
+            stream.WriteByte((byte)SUType.ObjectList);
+            SerializeInt(stream, list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                object v = list[i];
                 Serialize(stream, v, true);
             }
         }
@@ -325,16 +385,24 @@ namespace SerializationUtil
             } else if (type == SUType.ObjectArray) {
                 return DeserializeObjectArray(stream);
             }
-            else if (type == SUType.CustomClass) {
-                byte typeCode = (byte)stream.ReadByte();
-                CustomType customType = null;
-                if (typeCodeDict.TryGetValue(typeCode, out customType)) {
-                    return customType.DeserializationFunc.Invoke(stream);
-                }
-                return null;
+            else if (type == SUType.List) {
+                return DeserializeList(stream);
+            }
+            else if (type == SUType.ObjectList) {
+                return DeserializeObjectList(stream);
             }
             else if (type == SUType.Dictionary) {
                 return DeserializeDictionary(stream);
+            }
+            else if (type == SUType.CustomClass)
+            {
+                byte typeCode = (byte)stream.ReadByte();
+                CustomType customType = null;
+                if (typeCodeDict.TryGetValue(typeCode, out customType))
+                {
+                    return customType.DeserializationFunc.Invoke(stream);
+                }
+                return null;
             }
             return null;
         }
@@ -374,9 +442,7 @@ namespace SerializationUtil
         }
 
         public static string DeserializeString(MemoryStream stream) {
-            byte[] lengthBytes = new byte[4];
-            stream.Read(lengthBytes, 0, 4);
-            int length = BitConverter.ToInt32(lengthBytes, 0);
+            int length = DeserializeLength(stream);
             byte[] strBytes = new byte[length];
             stream.Read(strBytes, 0, length);
             return Encoding.UTF8.GetString(strBytes);
@@ -387,9 +453,7 @@ namespace SerializationUtil
             if (eTypeCode == SUType.CustomClass) {
                 byte customTypeCode = (byte)stream.ReadByte();
                 if (typeCodeDict.TryGetValue(customTypeCode, out CustomType customType)) {
-                    byte[] lengthBytes = new byte[4];
-                    stream.Read(lengthBytes, 0, 4);
-                    int length = BitConverter.ToInt32(lengthBytes, 0);
+                    int length = DeserializeLength(stream);
                     Array array = Array.CreateInstance(customType.Type, length);
                     for (int i = 0; i < length; i++) {
                         object v = customType.DeserializationFunc.Invoke(stream);
@@ -401,9 +465,7 @@ namespace SerializationUtil
                 }
             } else {
                 Type eType = GetTypeByCode(eTypeCode);
-                byte[] lengthBytes = new byte[4];
-                stream.Read(lengthBytes, 0, 4);
-                int length = BitConverter.ToInt32(lengthBytes, 0);
+                int length = DeserializeLength(stream);
                 Array array = Array.CreateInstance(eType, length);
                 for (int i = 0; i < length; i++)
                 {
@@ -423,6 +485,52 @@ namespace SerializationUtil
                 array.SetValue(v, i);
             }
             return array;
+        }
+
+        public static IList DeserializeList(MemoryStream stream) {
+            SUType eTypeCode = (SUType)stream.ReadByte();
+            if (eTypeCode == SUType.CustomClass)
+            {
+                byte customTypeCode = (byte)stream.ReadByte();
+                if (typeCodeDict.TryGetValue(customTypeCode, out CustomType customType))
+                {
+                    Type type = typeof(List<>).MakeGenericType(customType.Type);
+                    IList list = Activator.CreateInstance(type) as IList;
+                    int length = DeserializeLength(stream);
+                    for (int i = 0; i < length; i++)
+                    {
+                        object v = customType.DeserializationFunc.Invoke(stream);
+                        list.Add(v);
+                    }
+                    return list;
+                }
+                else
+                {
+                    throw new Exception(string.Format("not support type: {0}", customTypeCode));
+                }
+            }
+            else
+            {
+                Type eType = GetTypeByCode(eTypeCode);
+                Type type = typeof(List<>).MakeGenericType(eType);
+                IList list = Activator.CreateInstance(type) as IList;
+                int length = DeserializeLength(stream);
+                for (int i = 0; i < length; i++) {
+                    object v = Deserialize(stream, eTypeCode);
+                    list.Add(v);
+                }
+                return list;
+            }
+        }
+
+        public static List<object> DeserializeObjectList(MemoryStream stream) {
+            int length = DeserializeLength(stream);
+            List<object> list = new List<object>();
+            for (int i = 0; i < length; i++) {
+                object v = Deserialize(stream);
+                list.Add(v);
+            }
+            return list;
         }
 
         public static IDictionary DeserializeDictionary(MemoryStream stream) {

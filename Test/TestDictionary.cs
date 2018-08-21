@@ -9,7 +9,7 @@ namespace SerializationUtil
     public class TestDictionary
     {
         [Test()]
-        public void TestDict() {
+        public void TestPrimaryDict() {
             Dictionary<string, int> dict = new Dictionary<string, int>() {
                 { "aaa", 111 },
                 { "bbb", 222 },

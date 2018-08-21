@@ -37,10 +37,12 @@ namespace SerializationUtil
         }
 
         [Test()]
-        public void TestCustomTypeArray() {
+        public void TestCustomTypeArray()
+        {
             SerializationUtil.RegisterCustomType(typeof(Hero), (byte)'h', Hero.Serialize, Hero.Deserialize);
             Hero[] hArr = new Hero[3];
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++)
+            {
                 hArr[i] = new Hero()
                 {
                     Name = string.Format("Name: {0}", i),
@@ -51,7 +53,8 @@ namespace SerializationUtil
             SerializationUtil.Serialize(stream, hArr);
             stream.Position = 0;
             Hero[] nhArr = SerializationUtil.Deserialize(stream) as Hero[];
-            for (int i = 0; i < nhArr.Length; i++) {
+            for (int i = 0; i < nhArr.Length; i++)
+            {
                 Hero h = hArr[i];
                 Hero nh = nhArr[i];
                 Assert.AreEqual(h.Name, nh.Name);
@@ -60,7 +63,8 @@ namespace SerializationUtil
         }
 
         [Test()]
-        public void TestObjectArray() {
+        public void TestObjectArray()
+        {
             object[] oArr = new object[3];
             oArr[0] = 123;
             oArr[1] = "hello, world";
