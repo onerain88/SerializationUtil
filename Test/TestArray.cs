@@ -61,21 +61,5 @@ namespace SerializationUtil
                 Assert.AreEqual(h.Gold, nh.Gold);
             }
         }
-
-        [Test()]
-        public void TestObjectArray()
-        {
-            object[] oArr = new object[3];
-            oArr[0] = 123;
-            oArr[1] = "hello, world";
-            oArr[2] = true;
-            MemoryStream stream = new MemoryStream();
-            SerializationUtil.Serialize(stream, oArr);
-            stream.Position = 0;
-            object[] noArr = SerializationUtil.Deserialize(stream) as object[];
-            Assert.AreEqual(noArr[0], 123);
-            Assert.AreEqual(noArr[1], "hello, world");
-            Assert.AreEqual(noArr[2], true);
-        }
     }
 }

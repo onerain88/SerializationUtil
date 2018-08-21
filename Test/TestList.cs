@@ -62,22 +62,6 @@ namespace SerializationUtil
             }
         }
 
-        [Test()]
-        public void TestObjectArray()
-        {
-            List<object> oList = new List<object>(3);
-            oList.Add(123);
-            oList.Add("hello, world");
-            oList.Add(true);
-            MemoryStream stream = new MemoryStream();
-            SerializationUtil.Serialize(stream, oList);
-            stream.Position = 0;
-            List<object> noList = SerializationUtil.Deserialize(stream) as List<object>;
-            Assert.AreEqual(noList[0], 123);
-            Assert.AreEqual(noList[1], "hello, world");
-            Assert.AreEqual(noList[2], true);
-        }
-
         [Test]
         public void TestDictList()
         {

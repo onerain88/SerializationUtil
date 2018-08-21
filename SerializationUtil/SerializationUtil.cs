@@ -44,10 +44,10 @@ namespace SerializationUtil
         CustomClass,
 
         Array,
-        ObjectArray,
+        //ObjectArray,
 
         List,
-        ObjectList,
+        //ObjectList,
 
         Dictionary,
     }
@@ -256,13 +256,13 @@ namespace SerializationUtil
         }
 
         public static void SerializeObjectArray(MemoryStream stream, Array array) {
-            stream.WriteByte((byte)SUType.ObjectArray);
-            SerializeInt(stream, array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                object v = array.GetValue(i);
-                Serialize(stream, v, true);
-            }
+            //stream.WriteByte((byte)SUType.ObjectArray);
+            //SerializeInt(stream, array.Length);
+            //for (int i = 0; i < array.Length; i++)
+            //{
+            //    object v = array.GetValue(i);
+            //    Serialize(stream, v, true);
+            //}
         }
 
         public static void SerializeList(MemoryStream stream, IList list) {
@@ -319,13 +319,13 @@ namespace SerializationUtil
         }
 
         public static void SerializeObjectList(MemoryStream stream, List<object> list) {
-            stream.WriteByte((byte)SUType.ObjectList);
-            SerializeInt(stream, list.Count);
-            for (int i = 0; i < list.Count; i++)
-            {
-                object v = list[i];
-                Serialize(stream, v, true);
-            }
+            //stream.WriteByte((byte)SUType.ObjectList);
+            //SerializeInt(stream, list.Count);
+            //for (int i = 0; i < list.Count; i++)
+            //{
+            //    object v = list[i];
+            //    Serialize(stream, v, true);
+            //}
         }
 
         public static void SerializeDictionaryList(MemoryStream stream, IList list) {
@@ -405,15 +405,16 @@ namespace SerializationUtil
             else if (type == SUType.Array)
             {
                 return DeserializeArray(stream);
-            } else if (type == SUType.ObjectArray) {
-                return DeserializeObjectArray(stream);
-            }
+            } 
+            //else if (type == SUType.ObjectArray) {
+            //    return DeserializeObjectArray(stream);
+            //}
             else if (type == SUType.List) {
                 return DeserializeList(stream);
             }
-            else if (type == SUType.ObjectList) {
-                return DeserializeObjectList(stream);
-            }
+            //else if (type == SUType.ObjectList) {
+            //    return DeserializeObjectList(stream);
+            //}
             else if (type == SUType.Dictionary) {
                 return DeserializeDictionary(stream);
             }
