@@ -599,7 +599,7 @@ namespace SerializationUtil
 
 #endregion
 
-        static SUType GetCodeByType(Type type) {
+        public static SUType GetCodeByType(Type type) {
             if (type == typeof(byte))
                 return SUType.Byte;
             if (type == typeof(bool))
@@ -621,7 +621,7 @@ namespace SerializationUtil
             return SUType.Unknown;
         }
 
-        static Type GetTypeByCode(SUType code) {
+        public static Type GetTypeByCode(SUType code) {
             switch (code) {
                 case SUType.Byte:
                     return typeof(byte);

@@ -35,14 +35,20 @@
     <Compile Include="TestPrimary.cs" />
     <Compile Include="Hero.cs" />
     <Compile Include="TestArray.cs" />
-    <Compile Include="TestObject.cs" />
+    <Compile Include="TestCustomType.cs" />
     <Compile Include="TestDictionary.cs" />
     <Compile Include="TestList.cs" />
+    <Compile Include="TestCSharp.cs" />
+    <Compile Include="TestSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SerializationUtil\SerializationUtil.csproj">
       <Project>{CA4DB75F-2E6D-4461-B1CC-438331293C80}</Project>
       <Name>SerializationUtil</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Serializer\Serializer.csproj">
+      <Project>{5F249731-8EBD-4A72-BF0C-4D1DC236F86C}</Project>
+      <Name>Serializer</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

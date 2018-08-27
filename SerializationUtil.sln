@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SerializationUtil", "Serial
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{4D6393F1-44AF-4BE4-8D3F-2E89C0B58947}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serializer", "Serializer\Serializer.csproj", "{5F249731-8EBD-4A72-BF0C-4D1DC236F86C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -19,5 +21,9 @@ Global
 		{4D6393F1-44AF-4BE4-8D3F-2E89C0B58947}.Debug|x86.Build.0 = Debug|Any CPU
 		{4D6393F1-44AF-4BE4-8D3F-2E89C0B58947}.Release|x86.ActiveCfg = Release|Any CPU
 		{4D6393F1-44AF-4BE4-8D3F-2E89C0B58947}.Release|x86.Build.0 = Release|Any CPU
+		{5F249731-8EBD-4A72-BF0C-4D1DC236F86C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5F249731-8EBD-4A72-BF0C-4D1DC236F86C}.Debug|x86.Build.0 = Debug|Any CPU
+		{5F249731-8EBD-4A72-BF0C-4D1DC236F86C}.Release|x86.ActiveCfg = Release|Any CPU
+		{5F249731-8EBD-4A72-BF0C-4D1DC236F86C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
