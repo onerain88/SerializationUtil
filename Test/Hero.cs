@@ -41,9 +41,9 @@ namespace SerializationUtil
 
         public static void Encode(MemoryStream stream, object obj) {
             Hero hero = obj as Hero;
-            Serializer.Serializer.EncodeString(stream, hero.Name);
-            Serializer.Serializer.EncodeInt(stream, hero.Gold);
-            Serializer.Serializer.EncodeArray(stream, hero.ItemIdList);
+            Serializer.Serializer.Encode(stream, hero.Name);
+            Serializer.Serializer.Encode(stream, hero.Gold);
+            Serializer.Serializer.Encode(stream, hero.ItemIdList);
         }
 
         public static object Decode(MemoryStream stream) {

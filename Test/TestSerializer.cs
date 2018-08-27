@@ -118,13 +118,17 @@ namespace Test
             var list = new List<object>() {
                 123,
                 "abc",
-                (byte)'c',
+                true,
+                (short)12,
+                22L,
+                3.1415f,
             };
             var stream = new MemoryStream();
             Serializer.Serializer.Encode(stream, list);
             stream.Position = 0;
             var nList = Serializer.Serializer.Decode(stream) as List<object>;
             for (int i = 0; i < list.Count; i++) {
+                Console.WriteLine("{0} - {1}", list[i], nList[i]);
                 Assert.AreEqual(list[i], nList[i]);
             }
         }

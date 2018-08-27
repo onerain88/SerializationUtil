@@ -14,18 +14,23 @@ namespace Serializer
         Short,
         Int,
         Long,
+        Float,
+        Double,
 
         String,
         Class,
 
         Array,
-
         Dictionary,
     }
 
     public static class Serializer
     {
+        static byte[] shortBytes = new byte[2];
         static byte[] intBytes = new byte[4];
+        static byte[] longBytes = new byte[8];
+        static byte[] floatBytes = new byte[4];
+        static byte[] doubleBytes = new byte[8];
 
         private static Dictionary<Type, CustomClass> typeDict = new Dictionary<Type, CustomClass>();
         private static Dictionary<byte, CustomClass> typeCodeDict = new Dictionary<byte, CustomClass>();
@@ -39,24 +44,38 @@ namespace Serializer
             typeCodeDict.Add(typeCode, customClass);
         }
 
-#region Encode
+        #region Encode
 
-        public static void Encode(MemoryStream stream, object obj) {
+        public static void Encode(MemoryStream stream, object obj)
+        {
             Type type = obj.GetType();
             TypeCode typeCode = GetCodeByType(type);
-            switch (typeCode) {
+            switch (typeCode)
+            {
                 case TypeCode.Byte:
                     EncodeByte(stream, (byte)obj);
+                    break;
+                case TypeCode.Bool:
+                    EncodeBool(stream, (bool)obj);
+                    break;
+                case TypeCode.Short:
+                    EncodeShort(stream, (short)obj);
                     break;
                 case TypeCode.Int:
                     EncodeInt(stream, (int)obj);
                     break;
+                case TypeCode.Long:
+                    EncodeLong(stream, (long)obj);
+                    break;
+                case TypeCode.Float:
+                    EncodeFloat(stream, (float)obj);
+                    break;
+                case TypeCode.Double:
+                    EncodeDouble(stream, (double)obj);
+                    break;
                 case TypeCode.String:
                     EncodeString(stream, obj as string);
                     break;
-                //case TypeCode.Object:
-                    //EncodeObject(stream, obj);
-                    //break;
                 case TypeCode.Array:
                     EncodeArray(stream, obj as IList);
                     break;
@@ -64,29 +83,74 @@ namespace Serializer
                     EncodeDictionary(stream, obj as IDictionary);
                     break;
                 default:
-                    if (typeDict.TryGetValue(type, out CustomClass customClass)) {
+                    if (typeDict.TryGetValue(type, out CustomClass customClass))
+                    {
                         EncodeTypeCode(stream, TypeCode.Class);
                         stream.WriteByte(customClass.TypeCode);
                         customClass.SerializationFunc.Invoke(stream, obj);
-                    } else {
+                    }
+                    else
+                    {
                         throw new Exception(string.Format("Unsupport type : {0}", type));
                     }
                     break;
             }
         }
 
-        public static void EncodeByte(MemoryStream stream, byte b) {
+        public static void EncodeByte(MemoryStream stream, byte b)
+        {
             EncodeTypeCode(stream, TypeCode.Byte);
             stream.WriteByte(b);
         }
 
-        public static void EncodeInt(MemoryStream stream, int i) {
+        public static void EncodeBool(MemoryStream stream, bool b)
+        {
+            EncodeTypeCode(stream, TypeCode.Bool);
+            var bytes = BitConverter.GetBytes(b);
+            if (b)
+            {
+                stream.WriteByte((byte)1);
+            }
+            else
+            {
+                stream.WriteByte((byte)0);
+            }
+        }
+
+        public static void EncodeShort(MemoryStream stream, short s)
+        {
+            EncodeTypeCode(stream, TypeCode.Short);
+            var bytes = BitConverter.GetBytes(s);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public static void EncodeInt(MemoryStream stream, int i)
+        {
             EncodeTypeCode(stream, TypeCode.Int);
             var bytes = BitConverter.GetBytes(i);
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        public static void EncodeString(MemoryStream stream, string s) {
+        public static void EncodeLong(MemoryStream stream, long l) {
+            EncodeTypeCode(stream, TypeCode.Long);
+            var bytes = BitConverter.GetBytes(l);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public static void EncodeFloat(MemoryStream stream, float f) {
+            EncodeTypeCode(stream, TypeCode.Float);
+            var bytes = BitConverter.GetBytes(f);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public static void EncodeDouble(MemoryStream stream, double d) {
+            EncodeTypeCode(stream, TypeCode.Double);
+            var bytes = BitConverter.GetBytes(d);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public static void EncodeString(MemoryStream stream, string s)
+        {
             EncodeTypeCode(stream, TypeCode.String);
             var bytes = Encoding.UTF8.GetBytes(s);
             // 字符串长度
@@ -94,46 +158,52 @@ namespace Serializer
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        public static void EncodeArray(MemoryStream stream, IList list) {
+        public static void EncodeArray(MemoryStream stream, IList list)
+        {
             EncodeTypeCode(stream, TypeCode.Array);
             EncodeLength(stream, list.Count);
-            //Type eType = list.GetType().GetGenericArguments()[0];
-            //TypeCode typeCode = GetCodeByType(eType);
-            //EncodeTypeCode(stream, typeCode);
-            for (int i = 0; i < list.Count; i++) {
+            for (int i = 0; i < list.Count; i++)
+            {
                 Encode(stream, list[i]);
             }
         }
 
-        public static void EncodeDictionary(MemoryStream stream, IDictionary dict) {
+        public static void EncodeDictionary(MemoryStream stream, IDictionary dict)
+        {
             EncodeTypeCode(stream, TypeCode.Dictionary);
             EncodeLength(stream, dict.Count);
-            //Type type = dict.GetType();
-            //Type kType = type.GetGenericArguments()[0];
-            //Type vType = type.GetGenericArguments()[1];
-            //TypeCode kTypeCode = GetCodeByType(kType);
-            //TypeCode vTypeCode = GetCodeByType(vType);
-            //EncodeTypeCode(stream, kTypeCode);
-            //EncodeTypeCode(stream, vTypeCode);
             IDictionaryEnumerator enumerator = dict.GetEnumerator();
-            while (enumerator.MoveNext()) {
+            while (enumerator.MoveNext())
+            {
                 DictionaryEntry entry = (DictionaryEntry)enumerator.Current;
                 Encode(stream, entry.Key);
                 Encode(stream, entry.Value);
             }
         }
 
-#endregion
+        #endregion
 
-#region Decode
+        #region Decode
 
-        public static object Decode(MemoryStream stream) {
+        public static object Decode(MemoryStream stream)
+        {
             TypeCode typeCode = DecodeTypeCode(stream);
-            switch (typeCode) {
+            switch (typeCode)
+            {
                 case TypeCode.Byte:
                     return DecodeByte(stream);
+                case TypeCode.Bool:
+                    return DecodeBool(stream);
+                case TypeCode.Short:
+                    return DecodeShort(stream);
                 case TypeCode.Int:
                     return DecodeInt(stream);
+                case TypeCode.Long:
+                    return DecodeLong(stream);
+                case TypeCode.Float:
+                    return DecodeFloat(stream);
+                case TypeCode.Double:
+                    return DecodeDouble(stream);
                 case TypeCode.String:
                     return DecodeString(stream);
                 case TypeCode.Class:
@@ -147,13 +217,45 @@ namespace Serializer
             }
         }
 
-        public static byte DecodeByte(MemoryStream stream) {
+        public static byte DecodeByte(MemoryStream stream)
+        {
             return (byte)stream.ReadByte();
+        }
+
+        public static bool DecodeBool(MemoryStream stream) {
+            byte b = (byte)stream.ReadByte();
+            if (b == 1)
+            {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        public static short DecodeShort(MemoryStream stream) {
+            stream.Read(shortBytes, 0, shortBytes.Length);
+            return BitConverter.ToInt16(shortBytes, 0);
         }
 
         public static int DecodeInt(MemoryStream stream) {
             stream.Read(intBytes, 0, intBytes.Length);
             return (int)BitConverter.ToInt32(intBytes, 0);
+        }
+
+        public static long DecodeLong(MemoryStream stream) {
+            stream.Read(longBytes, 0, longBytes.Length);
+            return BitConverter.ToInt64(longBytes, 0);
+        }
+
+        public static float DecodeFloat(MemoryStream stream) {
+            stream.Read(floatBytes, 0, floatBytes.Length);
+            return BitConverter.ToSingle(floatBytes, 0);
+        }
+
+        public static double DecodeDouble(MemoryStream stream) {
+            stream.Read(doubleBytes, 0, doubleBytes.Length);
+            return BitConverter.ToDouble(doubleBytes, 0);
         }
 
         public static string DecodeString(MemoryStream stream) {
@@ -219,8 +321,18 @@ namespace Serializer
         static TypeCode GetCodeByType(Type type) {
             if (type == typeof(byte))
                 return TypeCode.Byte;
+            if (type == typeof(bool))
+                return TypeCode.Bool;
+            if (type == typeof(short))
+                return TypeCode.Short;
             if (type == typeof(int))
                 return TypeCode.Int;
+            if (type == typeof(long))
+                return TypeCode.Long;
+            if (type == typeof(float))
+                return TypeCode.Float;
+            if (type == typeof(double))
+                return TypeCode.Double;
             if (type == typeof(string))
                 return TypeCode.String;
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
